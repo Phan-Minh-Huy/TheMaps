@@ -1,0 +1,57 @@
+services:
+  db:
+    image: postgis/postgis:16-3.5
+    environment:
+      POSTGRES_DB: atlas
+      POSTGRES_USER: atlas
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-atlas_local_dev}
+    ports:
+      - "127.0.0.1:5432:5432"
+    volumes:
+      - atlas_postgres:/var/lib/postgresql/data
+      - ./db/schema.sql:/docker-entrypoint-initdb.d/10-atlas.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U atlas -d atlas"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  redis:
+    image: redis:7.4-alpine
+    command:
+      - redis-server
+      - --appendonly
+      - "yes"
+      - --maxmemory
+      - 128mb
+      - --maxmemory-policy
+      - allkeys-lru
+    ports:
+      - "127.0.0.1:6379:6379"
+    volumes:
+      - atlas_redis:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  app:
+    build: .
+    ports:
+      - "127.0.0.1:3001:3001"
+    environment:
+      DATABASE_URL: postgresql://atlas:${POSTGRES_PASSWORD:-atlas_local_dev}@db:5432/atlas
+      REDIS_URL: redis://redis:6379
+      HOST: 0.0.0.0
+      PORT: 3001
+      APP_ORIGIN: http://localhost:3001,http://127.0.0.1:3001
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+volumes:
+  atlas_postgres:
+  atlas_redis:

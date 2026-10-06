@@ -1,0 +1,31 @@
+{
+  "name": "themaps",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=22.13.0"
+  },
+  "scripts": {
+    "dev": "concurrently --kill-others-on-fail -n api,web \"node --env-file-if-exists=.env --watch server/node.mjs\" \"vite --config vite.local.config.mjs\"",
+    "build": "vite build --config vite.local.config.mjs",
+    "start": "node --env-file-if-exists=.env server/node.mjs",
+    "db:migrate": "node --env-file-if-exists=.env scripts/migrate-postgres.mjs"
+  },
+  "dependencies": {
+    "@hono/node-server": "2.1.1",
+    "concurrently": "10.0.5",
+    "hono": "4.13.10",
+    "lucide-react": "1.31.0",
+    "maplibre-gl": "5.6.1",
+    "pg": "8.23.0",
+    "react": "19.2.6",
+    "react-dom": "19.2.6",
+    "redis": "6.2.1",
+    "zod": "3.25.76"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "6.0.2",
+    "vite": "8.0.13"
+  }
+}

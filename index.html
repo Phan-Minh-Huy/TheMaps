@@ -1,0 +1,368 @@
+<!doctype html>
+<html lang="vi">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#256b55" />
+    <meta
+      name="description"
+      content="Khám phá bản đồ thế giới, tìm địa điểm và xem tòa nhà trong không gian 3D với Atlas."
+    />
+
+    <title>Atlas — Đi đến nơi bạn muốn</title>
+
+    <!-- CSS của thư viện bản đồ -->
+    <link
+      rel="stylesheet"
+      href="https://unpkg.com/maplibre-gl@5.6.1/dist/maplibre-gl.css"
+    />
+
+    <!-- CSS của website -->
+    <link rel="stylesheet" href="app.css" />
+  </head>
+
+  <body>
+    <!-- Các icon SVG dùng trong website -->
+    <svg class="svg-defs" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+      <defs>
+        <symbol id="i-search" viewBox="0 0 24 24">
+          <circle cx="10.5" cy="10.5" r="6.5" />
+          <path d="m16 16 4.5 4.5" />
+        </symbol>
+
+        <symbol id="i-pin" viewBox="0 0 24 24">
+          <path d="M20 10c0 6-8 12-8 12S4 16 4 10a8 8 0 1 1 16 0Z" />
+          <circle cx="12" cy="10" r="2.5" />
+        </symbol>
+
+        <symbol id="i-map" viewBox="0 0 24 24">
+          <path d="m3 5 6-2 6 2 6-2v16l-6 2-6-2-6 2ZM9 3v16M15 5v16" />
+        </symbol>
+
+        <symbol id="i-bookmark" viewBox="0 0 24 24">
+          <path d="M6 3h12v18l-6-4-6 4Z" />
+        </symbol>
+
+        <symbol id="i-location" viewBox="0 0 24 24">
+          <circle cx="12" cy="12" r="7" />
+          <circle cx="12" cy="12" r="2" />
+          <path d="M12 2v3M12 19v3M2 12h3M19 12h3" />
+        </symbol>
+
+        <symbol id="i-arrow" viewBox="0 0 24 24">
+          <path d="M5 12h14m-6-6 6 6-6 6" />
+        </symbol>
+
+        <symbol id="i-cube" viewBox="0 0 24 24">
+          <path d="m12 2 9 5v10l-9 5-9-5V7Zm0 10 9-5M12 12 3 7M12 12v10" />
+        </symbol>
+
+        <symbol id="i-close" viewBox="0 0 24 24">
+          <path d="m6 6 12 12M6 18 18 6" />
+        </symbol>
+
+        <symbol id="i-layers" viewBox="0 0 24 24">
+          <path d="m12 3 10 6-10 6L2 9Zm-9 11 9 5 9-5M3 18l9 5 9-5" />
+        </symbol>
+
+        <symbol id="i-compass" viewBox="0 0 24 24">
+          <circle cx="12" cy="12" r="9" />
+          <path d="m16 8-3 5-5 3 3-5Z" />
+        </symbol>
+      </defs>
+    </svg>
+
+    <!-- Menu bên trái -->
+    <nav class="rail" aria-label="Điều hướng chính">
+      <a href="./" class="brand" aria-label="Atlas, trang chủ">
+        <svg viewBox="0 0 32 32" aria-hidden="true">
+          <path d="M16 5 3 28h8l5-12 5 12h8Z" fill="currentColor" />
+        </svg>
+      </a>
+
+      <button class="rail-item active" id="explore-tab" aria-pressed="true">
+        <svg><use href="#i-map" /></svg>
+        <span>Khám phá</span>
+      </button>
+
+      <button class="rail-item" id="saved-tab" aria-pressed="false">
+        <svg><use href="#i-bookmark" /></svg>
+        <span>Đã lưu</span>
+      </button>
+
+      <div class="rail-bottom">
+        <span class="avatar">H</span>
+        <span>Atlas Maps</span>
+      </div>
+    </nav>
+
+    <!-- Thanh thông tin và tìm kiếm -->
+    <aside class="sidebar" id="sidebar">
+      <header class="sidebar-header">
+        <div class="wordmark">atlas<span class="wordmark-dot">.</span></div>
+
+        <span class="eyebrow">THẾ GIỚI TRONG TẦM TAY</span>
+      </header>
+
+      <form id="search-form" class="search-box" role="search">
+        <svg><use href="#i-search" /></svg>
+
+        <input
+          id="search"
+          type="search"
+          placeholder="Tìm địa điểm, thành phố…"
+          aria-label="Tìm địa điểm"
+          autocomplete="off"
+          spellcheck="false"
+          aria-controls="results"
+        />
+
+        <button type="submit" class="search-submit" aria-label="Tìm kiếm">
+          <svg><use href="#i-arrow" /></svg>
+        </button>
+      </form>
+
+      <div class="search-hint">Nhập địa điểm rồi nhấn Enter để đến đó.</div>
+
+      <!-- Danh sách kết quả tìm kiếm -->
+      <section id="results-panel" hidden aria-label="Kết quả tìm kiếm">
+        <div class="section-top">
+          <h2>Kết quả tìm kiếm</h2>
+          <button id="close-results" class="text-button">Đóng</button>
+        </div>
+
+        <p id="search-status" class="muted" role="status"></p>
+        <div id="results"></div>
+      </section>
+
+      <!-- Nội dung mặc định -->
+      <div id="explore-panel">
+        <div class="intro">
+          <span class="little-label"> ĐI MỘT CHÚT, THẤY NHIỀU HƠN </span>
+
+          <h1>
+            Đi đến nơi<br />
+            bạn muốn<span>.</span>
+          </h1>
+
+          <p>
+            Một góc phố quen, một thành phố mới.<br />
+            Hành trình bắt đầu từ đây.
+          </p>
+        </div>
+
+        <button id="locate-sidebar" class="locate-row">
+          <span class="round-icon">
+            <svg><use href="#i-location" /></svg>
+          </span>
+
+          <span>
+            <strong>Khám phá quanh bạn</strong>
+            <small>Sử dụng vị trí hiện tại</small>
+          </span>
+
+          <svg class="arrow"><use href="#i-arrow" /></svg>
+        </button>
+
+        <div class="section-top">
+          <h2>Một nơi để bắt đầu</h2>
+          <span class="small-tag">GỢI Ý</span>
+        </div>
+
+        <div class="places" id="suggestions"></div>
+
+        <div class="tip-card">
+          <svg><use href="#i-cube" /></svg>
+
+          <div>
+            <strong>Đổi góc nhìn. Thấy điều mới.</strong>
+
+            <p>
+              Chuyển sang 3D để khám phá các khối tòa nhà. Phóng gần để xem rõ
+              hơn.
+            </p>
+
+            <button id="try-3d">Thử chế độ 3D <span>↗</span></button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Địa điểm đã lưu -->
+      <section id="saved-panel" hidden>
+        <div class="section-top">
+          <h2>Địa điểm đã lưu</h2>
+          <span id="saved-count" class="small-tag">0</span>
+        </div>
+
+        <p class="muted">
+          Những nơi bạn muốn quay lại, lưu trên trình duyệt này.
+        </p>
+
+        <div id="saved-list"></div>
+      </section>
+
+      <!-- Thông tin địa điểm đang chọn -->
+      <section
+        id="detail"
+        class="detail"
+        hidden
+        aria-label="Địa điểm được chọn"
+      >
+        <div class="section-top">
+          <span class="little-label"> ĐỊA ĐIỂM ĐANG CHỌN </span>
+
+          <button
+            id="close-detail"
+            class="icon-button"
+            aria-label="Đóng thông tin"
+          >
+            <svg><use href="#i-close" /></svg>
+          </button>
+        </div>
+
+        <h2 id="detail-title"></h2>
+        <p id="detail-address"></p>
+        <div id="detail-coordinates" class="coordinate-line"></div>
+
+        <button id="save-place" class="save-button">
+          <svg><use href="#i-bookmark" /></svg>
+          <span>Lưu địa điểm</span>
+        </button>
+      </section>
+
+      <footer class="sidebar-footer">
+        <span class="online-dot"></span>
+        Bản đồ mở. Khám phá không giới hạn.
+      </footer>
+    </aside>
+
+    <!-- Vùng bản đồ -->
+    <main class="map-stage" aria-label="Bản đồ tương tác">
+      <div id="map"></div>
+
+      <button
+        class="mobile-panel-toggle"
+        id="mobile-toggle"
+        aria-label="Mở thanh tìm kiếm"
+      >
+        <svg><use href="#i-search" /></svg>
+      </button>
+
+      <div class="map-top">
+        <div class="location-pill">
+          <span class="online-dot"></span>
+          <span id="map-place">Thành phố Hồ Chí Minh</span>
+        </div>
+
+        <div class="view-switch" role="group" aria-label="Chế độ bản đồ">
+          <button id="view-2d" class="active" aria-pressed="true">
+            <svg><use href="#i-map" /></svg>
+            2D
+          </button>
+
+          <button id="view-3d" aria-pressed="false">
+            <svg><use href="#i-cube" /></svg>
+            3D
+          </button>
+        </div>
+      </div>
+
+      <div id="map-loading" class="map-message" role="status">
+        <span class="spinner"></span>
+        Đang mở bản đồ thế giới…
+      </div>
+
+      <div id="map-error" class="map-message map-error" hidden role="alert">
+        <strong>Chưa thể tải bản đồ</strong>
+
+        <p>Kiểm tra kết nối mạng và thử lại. Trình duyệt cần hỗ trợ WebGL.</p>
+
+        <button id="retry-map">Tải lại bản đồ</button>
+      </div>
+
+      <!-- Các nút điều khiển bản đồ -->
+      <div class="map-tools">
+        <button
+          id="compass"
+          class="map-tool"
+          aria-label="Quay bản đồ về hướng Bắc"
+          title="Hướng Bắc"
+        >
+          <svg id="compass-icon">
+            <use href="#i-compass" />
+          </svg>
+          <small>N</small>
+        </button>
+
+        <div class="zoom-group">
+          <button id="zoom-in" class="map-tool" aria-label="Phóng to">+</button>
+
+          <button id="zoom-out" class="map-tool" aria-label="Thu nhỏ">−</button>
+        </div>
+
+        <button
+          id="locate-map"
+          class="map-tool"
+          aria-label="Đến vị trí của tôi"
+          title="Vị trí của tôi"
+        >
+          <svg><use href="#i-location" /></svg>
+        </button>
+      </div>
+
+      <div class="map-bottom">
+        <div class="layers-control">
+          <button
+            id="layers-toggle"
+            class="layers-button"
+            aria-expanded="false"
+            aria-controls="layers-menu"
+          >
+            <span class="layers-art">
+              <svg><use href="#i-layers" /></svg>
+            </span>
+
+            <span>Kiểu bản đồ</span>
+          </button>
+
+          <div id="layers-menu" class="layers-menu" hidden>
+            <span class="little-label"> CHỌN KIỂU BẢN ĐỒ </span>
+
+            <button data-style="liberty" class="active" aria-pressed="true">
+              <span class="style-preview streets"></span>
+              Đường phố
+              <span class="check">✓</span>
+            </button>
+
+            <button data-style="positron" aria-pressed="false">
+              <span class="style-preview light"></span>
+              Tối giản
+              <span class="check">✓</span>
+            </button>
+
+            <button data-style="dark" aria-pressed="false">
+              <span class="style-preview dark"></span>
+              Ban đêm
+              <span class="check">✓</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="map-readout">
+          <span id="view-label">GÓC NHÌN 2D</span>
+          <span id="center-coordinates"> 10.7769° N · 106.7009° E </span>
+        </div>
+      </div>
+
+      <div id="toast" class="toast" hidden role="status"></div>
+    </main>
+
+    <!-- Thư viện bản đồ phải được tải trước app.js -->
+    <script
+      src="https://unpkg.com/maplibre-gl@5.6.1/dist/maplibre-gl.js"
+      defer
+    ></script>
+
+    <script src="app.js" defer></script>
+  </body>
+</html>
